@@ -31,4 +31,4 @@ endif()
 # Another pico macro which generates the uf2 file in addition to the elf
 pico_add_extra_outputs(threads)
 
-add_custom_target(flash picotool load -f $<TARGET_FILE:threads> DEPENDS threads)
+add_custom_target(flash picotool load -f $<TARGET_FILE:threads> DEPENDS thread)

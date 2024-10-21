@@ -21,7 +21,15 @@ void side_thread(void *params)
 {
 	while (1) {
         vTaskDelay(100);
-        counter += counter + 1;
+
+        if (xSemaphoreTake(&semaphore, portMAX_DELAY) == pdTRUE);
+        {
+            counter = counter + 1;
+            xSemaphoreGive(&semaphore);
+        }
+        
+
+       // counter += counter + 1;
 		printf("hello world from %s! Count %d\n", "thread", counter);
 	}
 }
