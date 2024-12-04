@@ -1,4 +1,4 @@
-add_executable(mytest test.c unity_config.c)
+add_executable(mytest mytest.c)
 
 target_link_libraries(mytest PRIVATE
   pico_stdlib
@@ -22,7 +22,7 @@ pico_enable_stdio_usb(mytest 1)
 
 # This will speed up the simulation, since data won't be copied from the flash controller.
 # It does make the binary non-persistent on a real microcontroller.
-# pico_set_binary_type(mytest no_flash)
+# pico_set_binary_type(test no_flash)
 
 find_program(RENODE renode
 # This is extra stuff so it can find the mac installation paths.
