@@ -1,4 +1,6 @@
-add_executable(mytest mytest.c)
+add_executable(mytest
+              mytest.c
+              )
 
 target_link_libraries(mytest PRIVATE
   pico_stdlib

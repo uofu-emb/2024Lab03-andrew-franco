@@ -44,28 +44,128 @@ void test_for_looping(void)
     TEST_ASSERT_EQUAL_INT(1, counter);
 }
 
-void test_variable_assignment()
+
+//Activity 3 
+//First we need to define each stack and each thread priority.
+
+#define BARONESS_STACK configMINIMAL_STACK_SIZE
+#define BARONESS_PRIORITY ( TEST_RUNNER_PRIORITY - 1UL)
+#define BARON_STACK configMINIMAL_STACK_SIZE
+#define BARON_PRIORITY ( TEST_RUNNER_PRIORITY - 1UL)
+
+void test_lock(void) 
 {
-    int x = 1;
-    TEST_ASSERT_TRUE_MESSAGE(x == 1,"Variable assignment failed.");
+
+    //Define tasks and semaphores
+    TaskHandle_t Baroness_thread, Baron_thread, Emperor_thread;
+    SemaphoreHandle_t Baroness = xSemaphoreCreateCounting(1, 1);
+    SemaphoreHandle_t Baron = xSemaphoreCreateCounting(1, 1);
+
+    printf("- start of thread\n");
+
+    SemaphoreHandle_t Baroness = xSemaphoreCreateCounting(1, 1);
+    SemaphoreHandle_t Baron = xSemaphoreCreateCounting(1, 1);
+
+    struct DeadlockArgs Baroness_args = {Baroness, Baron, 0, 'a'};
+    struct DeadlockArgs Baron_args = {Baron, Baroness, 7, 'b'};
+
+    BaseType_t Baroness_status =
+        xTaskCreate(deadlock, "Baroness", BARONESS_STACK,
+            (void *)&Baroness_args, BARONESS_PRIORITY, Baroness_thread);
+    BaseType_t Baron_status =
+        xTaskCreate(deadlock, "Baron", BARON_STACK,
+            (void *)&Baron_args, BARON_PRIORITY, Baron_thread);   
+
+
+    printf("- New thread run\n"); //Finished check of deadlocking the threads and seeing if they are capable of releasing themselves
+
+    vTaskDelay(3000);//Pause before running next task
+
+
+    printf("- Paused test_for_looping for 3000 ticks\n");
+
+    TEST_ASSERT_EQUAL_INT(uxSemaphoreGetCount(Baroness), 0);
+    TEST_ASSERT_EQUAL_INT(uxSemaphoreGetCount(Baron), 0);
+
+    TEST_ASSERT_EQUAL_INT(2, Baroness_args.counter);
+    TEST_ASSERT_EQUAL_INT(9,Baron_args.counter);
+    printf("- Killing threads\n");
+    vTaskDelete(Baroness_thread);
+    vTaskDelete(Baron_thread);
+    printf("- Killed threads");
+    
 }
 
-void test_multiplication(void)
+//Activity 4
+
+void test_orphaned(void)
 {
-    int x = 30;
-    int y = 6;
-    int z = x / y;
-    TEST_ASSERT_TRUE_MESSAGE(z == 5, "Multiplication of two integers returned incorrect value.");
+    int counter = 1;
+    SemaphoreHandle_t semaphore = xSemaphoreCreateCounting(1, 1);
+
+    int result = orphaned_lock(semaphore, 500, &counter);
+    TEST_ASSERT_EQUAL_INT(2, counter);
+    TEST_ASSERT_EQUAL_INT(pdTRUE, result);
+    TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
+
+    result = orphaned_lock(semaphore, 500, &counter);
+    TEST_ASSERT_EQUAL_INT(3, counter);
+    TEST_ASSERT_EQUAL_INT(pdFALSE, result);
+    TEST_ASSERT_EQUAL_INT(0, uxSemaphoreGetCount(semaphore));
+
+    result = orphaned_lock(semaphore, 500, &counter);
+    TEST_ASSERT_EQUAL_INT(3, counter);
+    TEST_ASSERT_EQUAL_INT(pdFALSE, result);
+    TEST_ASSERT_EQUAL_INT(0, uxSemaphoreGetCount(semaphore));
+
 }
+
+void test_unorphaned(void)
+{
+    int counter = 1;
+    SemaphoreHandle_t semaphore = xSemaphoreCreateCounting(1, 1);
+
+    int result;
+    result = unorphaned_lock(semaphore, 500, &counter);
+    TEST_ASSERT_EQUAL_INT(2, counter);
+    TEST_ASSERT_EQUAL_INT(pdTRUE, result);
+    TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
+
+    result = unorphaned_lock(semaphore, 500, &counter);
+    TEST_ASSERT_EQUAL_INT(3, counter);
+    TEST_ASSERT_EQUAL_INT(pdTRUE, result);
+    TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
+
+
+}
+
+//Now we need to run each test in a runner thread
+
+void runner_thread(__unused void *args)
+{
+    for(;;) {
+        printf("Start tests\n");
+        UNITY_BEGIN();
+        RUN_TEST(test_for_blocked_loop);
+        RUN_TEST(test_for_looping);
+        RUN_TEST(test_lock);
+        RUN_TEST(test_orphaned);
+        RUN_TEST(unorphaned_lock);
+
+        UNITY_END();
+        sleep_ms(10000);
+    }
+}
+
+
 
 int main (void)
 {
     stdio_init_all();
-    sleep_ms(5000); // Give time for TTY to attach.
-    printf("Start tests\n");
-    UNITY_BEGIN();
-    RUN_TEST(test_variable_assignment);
-    RUN_TEST(test_multiplication);
-    sleep_ms(5000);
-    return UNITY_END();
+    hard_assert(cyw43_arch_init() == PICO_OK);
+    xTaskCreate(runner_thread, "TestRunner",
+                    configMINIMAL_STACK_SIZE, NULL, TEST_RUNNER_PRIORITY, NULL);
+    vTaskStartScheduler();
+    return 0;
+
 }
