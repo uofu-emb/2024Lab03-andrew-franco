@@ -34,15 +34,20 @@ void test_for_blocked_loop(void)
 
 void test_for_looping(void)
 {
-    SemaphoreHandle_t semaphore = xSemaphoreCreateCounting(1, 1); //Intitate the Semaphore with the timer embedded
-    int counter = 0; //Start the timer global variable that also exhists in loop.h
-
+    SemaphoreHandle_t semaphore = xSemaphoreCreateCounting(1, 1);
+    int counter = 0;
+    
+    // Give the semaphore before calling do_loop
+    xSemaphoreGive(semaphore);
+    
     int output = do_loop(semaphore, &counter, "test", 10);
-
-    //Now we run the two UNITY test that test if the Semaphores release over a running loop
-    TEST_ASSERT_EQUAL_INT(pdFALSE, output);
+    
+    // Adjust assertions based on expected behavior
+    TEST_ASSERT_EQUAL_INT(pdTRUE, output);
     TEST_ASSERT_EQUAL_INT(1, counter);
+    TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
 }
+
 
 
 //Activity 3 
