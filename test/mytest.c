@@ -63,19 +63,15 @@ void test_lock(void)
 
     printf("- start of thread\n");
 
-    SemaphoreHandle_t Baroness = xSemaphoreCreateCounting(1, 1);
-    SemaphoreHandle_t Baron = xSemaphoreCreateCounting(1, 1);
-
     struct DeadlockArgs Baroness_args = {Baroness, Baron, 0, 'a'};
     struct DeadlockArgs Baron_args = {Baron, Baroness, 7, 'b'};
 
     BaseType_t Baroness_status =
         xTaskCreate(deadlock, "Baroness", BARONESS_STACK,
-            (void *)&Baroness_args, BARONESS_PRIORITY, Baroness_thread);
+            (void *)&Baroness_args, BARONESS_PRIORITY, &Baroness_thread);
     BaseType_t Baron_status =
         xTaskCreate(deadlock, "Baron", BARON_STACK,
-            (void *)&Baron_args, BARON_PRIORITY, Baron_thread);   
-
+            (void *)&Baron_args, BARON_PRIORITY, &Baron_thread);   
 
     printf("- New thread run\n"); //Finished check of deadlocking the threads and seeing if they are capable of releasing themselves
 
@@ -120,24 +116,21 @@ void test_orphaned(void)
 
 }
 
-void test_unorphaned(void)
+void test_unorphaned_lock(void)
 {
     int counter = 1;
     SemaphoreHandle_t semaphore = xSemaphoreCreateCounting(1, 1);
-
     int result;
     result = unorphaned_lock(semaphore, 500, &counter);
     TEST_ASSERT_EQUAL_INT(2, counter);
     TEST_ASSERT_EQUAL_INT(pdTRUE, result);
     TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
-
     result = unorphaned_lock(semaphore, 500, &counter);
     TEST_ASSERT_EQUAL_INT(3, counter);
     TEST_ASSERT_EQUAL_INT(pdTRUE, result);
     TEST_ASSERT_EQUAL_INT(1, uxSemaphoreGetCount(semaphore));
-
-
 }
+
 
 //Now we need to run each test in a runner thread
 
@@ -150,7 +143,7 @@ void runner_thread(__unused void *args)
         RUN_TEST(test_for_looping);
         RUN_TEST(test_lock);
         RUN_TEST(test_orphaned);
-        RUN_TEST(unorphaned_lock);
+        RUN_TEST(test_unorphaned_lock);
 
         UNITY_END();
         sleep_ms(10000);
