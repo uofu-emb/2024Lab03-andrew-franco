@@ -1,11 +1,37 @@
-add_executable(mytest test.c unity_config.c)
+add_executable(mytest
+    mytest.c
+    ${CMAKE_SOURCE_DIR}/src/loop.c
+    ${CMAKE_SOURCE_DIR}/src/threads.c
+)
+
+target_compile_definitions(mytest PRIVATE UNIT_TEST)
 
 target_link_libraries(mytest PRIVATE
-  pico_stdlib
-  pico_async_context_freertos
-  FreeRTOS-Kernel-Heap4
-  unity
+    pico_stdlib
+    FreeRTOS-Kernel
+    pico_async_context_freertos
+    FreeRTOS-Kernel-Heap4
+    Unity
 )
+
+
+add_library(Unity STATIC
+    ${CMAKE_SOURCE_DIR}/lib/unity/src/unity.c
+)
+
+target_include_directories(Unity PUBLIC
+    ${CMAKE_SOURCE_DIR}/lib/unity/src
+)
+
+
+
+# Update the target_include_directories for mytest
+target_include_directories(mytest PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/lib/unity/src
+)
+
+pico_add_extra_outputs(mytest)
 
 # The CYW43 is the Wifi/Bluetooth module. If the board is set to pico_w, this
 # variable will be set and the wireless libraries added.
@@ -22,7 +48,7 @@ pico_enable_stdio_usb(mytest 1)
 
 # This will speed up the simulation, since data won't be copied from the flash controller.
 # It does make the binary non-persistent on a real microcontroller.
-# pico_set_binary_type(mytest no_flash)
+# pico_set_binary_type(test no_flash)
 
 find_program(RENODE renode
 # This is extra stuff so it can find the mac installation paths.
